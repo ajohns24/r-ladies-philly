@@ -300,7 +300,7 @@ Our 20,000 posterior plausible models combine 4 separate "chains" or samples of 
 mcmc_trace(bike_posterior)
 ```
 
-Next, we can check out density plots of the `(Intercept)` and slope (`temp_feel`) values in these chains. This gives us a sense for the distribution of values explored in our simulation, not just their sequence. We want the 4 density plots to look similiar, suggesting that the simulation is stable (i.e. we could get a bigger simulation but the results wouldn't be much different). How do they look to you?
+Next, we can check out density plots of the `(Intercept)` and slope (`temp_feel`) values in these chains. This gives us a sense for the distribution of values explored in our simulation, not just their sequence. We want the 4 density plots to look similar, suggesting that the simulation is stable (i.e. we could get a bigger simulation but the results wouldn't be much different). How do they look to you?
 
 ```{r}
 mcmc_dens_overlay(bike_posterior)
@@ -325,42 +325,183 @@ With some assurance that our simulation has stabilized, let's explore our poster
 
 **Exercise 12: Posterior summaries**    
 
+To dig in deeper, we can examine the posterior models for the `(Intercept)` and `temp_feel` model coefficients:
+
 ```{r}
+# Graphical summary of the posteriors
 mcmc_dens(bike_posterior)
+```
+
+We can also obtain numerical summaries of these posteriors. Notice how these numerical summaries connect with the medians and ranges of the posterior models plotted above:
+
+```{r}
+# Numerical summary of the posteriors
 tidy(bike_posterior, effects = c("fixed", "aux"),
-     conf.int = TRUE, conf.level = 0.80)
+     conf.int = TRUE, conf.level = 0.95)
+```
+
+Questions:
+
+- What does the posterior median `estimate` of the `temp_feel` coefficient (81.8) indicate about the relationship between ridership and temperature?
+
+- The 95% **posterior credible interval** for `temp_feel` suggests there's a 95% chance that this coefficient falls between 71.6 and 92.1. (This is not a typo! This is how interval estimates are interpreted in Bayesian analysis.) Based on this result, do you think we have enough evidence to conclude that ridership tends to increase as temperature increases?
+
+
+
+
+
+\
+
+
+
+**Exercise 12: Posterior prediction**
+
+It's supposed to be 90 degrees tomorrow. Plot and discuss the posterior predictive model for how many rides we'll see tomorrow:
+
+```{r}
+# Simulate and plot the posterior predictive model
+set.seed(84735)
+predictions_90 <- posterior_predict(
+  bike_posterior, newdata = data.frame(temp_feel = 90))
+mcmc_areas(predictions_90)
+```
+
+What if it's supposed to be 70 degrees tomorrow? Plot and discuss the posterior predictive model for how many rides we'll see. How does this compare to our prediction for a 90-degree day?
+
+```{r}
+
 ```
 
 
 
 
-posterior prediction
-
-
-but is it good?
-mcmc simulation
-pp_check
-posterior prediction intervals
+\
 
 
 
+**EXERCISE 13: How accurate are the posterior predictions?**
+
+If we want to use our model to make such predictions, we should also question how accurate they might be. For illustration and computational purposes only, let's examine our model's posterior predictive performance for just 20 of our data points:
+
+```{r}
+# Take a random sample of 20 data points
+set.seed(84735)
+bikes_small <- bikes %>% 
+  sample_n(size = 20)
+
+# Simulate posterior predictive models for these 20 data points
+predictions <- posterior_predict(bike_posterior, newdata = bikes_small)
+```
+
+The plot below illustrates features of the posterior predictive models for the 20 data points:
+
+- the dark blue dots represent the *observed* data points
+- the light blue dots represent the corresponding posterior median *predicted* ridership for these data points
+- the long, thin blue lines represent the corresponding 95% prediction intervals for ridership
+- the shorter, darker blue lines represent the corresponding 50% prediction intervals for ridership
+
+```{r}
+ppc_intervals(bikes_small$rides, yrep = predictions, x = bikes_small$temp_feel, 
+							prob = 0.5, prob_outer = 0.95) +
+	labs(x = "temp_feel", y = "rides")
+```
+
+
+Questions:
+
+- Roughly how far do the 20 data points fall from their corresponding posterior median predictions? For example, do they tend to be 10, 100, 1000, or 10000 rides off?
+- Roughly what percentage of the 20 data points fall within their corresponding 95% prediction intervals?
+- Do our posterior prediction models reflect general certainty or uncertainty about how many rides to expect on a given day?
 
 
 
 
-you try: tweak the prior?
+\
+
+
+
+**EXERCISE 14: How accurate are the posterior predictions? Take two.**
+
+The `prediction_summary()` function provides numerical summaries of your observations in the plot above:
+
+- `mae` (median absolute error) measures the typical distance of an observed ridership outcome from its posterior predictive mean.
+- `mae_scaled` measures the typical number of standard deviations an observed ridership outcome from its posterior predictive mean.
+- `within_50` records the percentage of data points that fall within their 50% prediction intervals. `within_95` is similar but for the 95% prediction intervals.
 
 
 ```{r}
-set.seed(84735)
-predictions <- posterior_predict(bike_posterior, newdata = bikes)
+prediction_summary(model = bike_posterior, data = bikes_small)
+```
 
-ppc_intervals(bikes$rides, yrep = predictions, x = bikes$temp_feel, 
-							prob = 0.5, prob_outer = 0.95) +
-	labs(x = "x1", y = "ys")
+Interpret the 4 reported numbers and try to connect these to what you observed in the plot above.
+
+NOTE: `prediction_summary_cv()` provides a cross-validated alternative to measuring posterior prediction accuracy.
+
+
+
+
+
+\
+
+
+
+
+**EXERCISE 15: You try. Tweak the prior.**
+
+Recall that we utilized weakly informative priors in our analysis above. Instead, we could tune priors to reflect whatever prior information we might have about the relationship between ridership and temperature. For example, setting `prior = normal(100, 50)` indicates a prior understanding that, for each 1 degree increase in temperature, ridership likely increases by `100` riders though it could reasonably increase anywhere between 0 and 200 riders (100 - 2*50, 100 + 2*50).
+
+
+```{r}
+# Simulate the prior model
+new_bike_prior <- stan_glm(
+  rides ~ temp_feel, data = bikes,
+  family = gaussian,
+  prior = normal(100, 50),
+  prior_PD = TRUE,
+  chains = 4, iter = 5000*2, seed = 84735)
+
+# 200 prior model lines
+bikes %>%
+  add_predicted_draws(new_bike_prior, n = 200) %>%
+  ggplot(aes(x = temp_feel, y = rides)) +
+  geom_smooth(aes(y = .prediction, group = .draw), 
+              size = 0.1, method = "lm", se = FALSE)
+```
+
+
+Your turn. Tune and simulate priors that match the following scenarios.
+
+- We pretty certain that, for each 1 degree increase in temperature, ridership tends to increase by somewhere between 90 and 110 riders.
+
+- We're uncertain about the relationship between ridership in temperature. For each 1 degree increase in temperature, ridership might typically decrease by as much as 100 degrees or increase by as much as 100 degrees.
+
+- We pretty certain that, for each 1 degree increase in temperature, ridership tends to decrease.
+
+
+
+
+\
+
+
+
+
+**EXERCISE 15: Weather**
+
+Apply what you've learned to build a Bayesian regression model 3pm temperature (`temp3pm`) by 9am temperature (`temp9am`) in Perth, Australia.
+
+```{r}
+data(weather_perth)
 ```
 
 
 
 
 
+\
+
+
+
+
+**TO LEARN MORE**    
+
+Chapters 9--11 in [Bayes Rules!](https://www.bayesrulesbook.com/chapter-9.html) go into more depth on Bayesian regression.
