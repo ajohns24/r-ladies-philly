@@ -1,0 +1,366 @@
+# Bayes Rules! at R-Ladies Philly
+
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  fig.height = 2.5,
+  fig.width = 4.5,
+  fig.pos = "center")
+```
+
+
+\
+
+
+## Getting started 
+
+**GOALS**
+
+- Learn to think like Bayesians.
+- Apply Bayesian thinking in a regression setting.
+
+
+\
+
+
+**DIRECTIONS**    
+
+You do you. Depending upon your previous Bayes and modeling experience, you might choose to skip around.
+
+
+\
+
+
+
+**GET SET UP**
+
+```{r}
+# Load packages
+library(tidyverse)
+library(tidybayes)
+library(bayesrules)
+library(bayesplot)
+library(rstanarm)
+library(broom.mixed)
+```
+
+
+
+\
+\
+
+
+
+## Thinking like a Bayesian
+
+**GOAL**    
+
+In this first set of exercises, you'll use functions in the `bayesrules` package to familiarize yourself with the main components of a Bayesian model: the prior, data, and posterior. You'll do so in the context of "Beta-Binomial" model.
+
+
+\
+
+
+**THE STORY**
+
+Let $\pi$ ("pi") be the proportion of U.S. adults that believe that climate change is real and caused by people. Thus $\pi$ is some value between 0 and 1.
+
+\
+
+
+
+**Exercise 1: Specify a prior model**
+
+The first step in learning about $\pi$ is to specify a **prior model** for $\pi$ (i.e. prior to collecting any data). Suppose your friend specifies their understanding of $\pi$ through the "Beta(2, 20)" model. Plot this Beta model and discuss what it tells you about your friend's prior understanding. For example:
+
+- What do they think is the most likely value of $\pi$?    
+- What range of $\pi$ values do they think are plausible?
+
+
+```{r}
+plot_beta(alpha = 2, beta = 20)
+```
+
+
+
+\
+\
+
+
+**Exercise 2: Check out some data**
+
+The second step in learning about $\pi$, the proportion of U.S. adults that believe that climate change is real and caused by people, is to collect data. Your friend surveys 10 people and 6 believe that climate change is real and caused by people. The **likelihood function** of $\pi$ plots the chance of getting this 6-out-of-10 survey result under different possible $\pi$ values. Based on this plot:
+
+- With what values of $\pi$ are the 6-out-of-10 results most consistent?
+- For what values of $\pi$ would these 6-out-of-10 results be *unlikely*?
+
+
+```{r}
+plot_binomial_likelihood(y = 6, n = 10)
+```
+
+
+
+
+\
+
+
+
+**Exercise 3: Build the posterior model**    
+
+In a Bayesian analysis of $\pi$, we build a *posterior* model of $\pi$ by combining the prior model of $\pi$ with the data (represented through the likelihood function). Plot all 3 components below. Summarize your observations:
+
+- What's your friend's posterior understanding of $\pi$?
+- How does their posterior understanding compare to their prior and likelihood? Thus how does their posterior *balance* the prior and data?
+
+```{r}
+plot_beta_binomial(alpha = 2, beta = 20, y = 6, n = 10)
+```
+
+
+
+
+\
+\
+
+
+
+**Exercise 4: Another friend**
+
+Consider another friend that saw the same 6-out-of-10 polling data but started with a Beta(1, 1) prior model for $\pi$:
+
+```{r}
+plot_beta(alpha = 1, beta = 1)
+```
+
+- Describe the new friend's understanding of $\pi$. Compared to the first friend, are they more or less sure about $\pi$?
+
+- Do you think the new friend will have a different posterior model than the first friend? If so, how do you think it will compare?
+
+- Test your intuition. Use `plot_beta_binomial()` to explore your new friend's posterior model of $\pi$.
+
+
+
+\
+\
+
+
+
+**Exercise 5: More data**
+
+Your two friends come across more data. In the `pulse_of_the_nation` survey, 655 of 1000 people believed climate change was real and caused by people:
+
+```{r}
+data("pulse_of_the_nation")
+pulse_of_the_nation %>% 
+  count(climate_change)
+```
+
+- How do you think the additional data will impact your first friend's posterior understanding of $\pi$? What about the second friend's?
+
+- Upon seeing the 1000-person survey results, do you think your two friends' posterior understandings of $\pi$ will disagree a lot or a little?
+
+- Test your intuition. Use `plot_beta_binomial()` to explore both friends' posterior models of $\pi$.
+
+
+\
+\
+
+
+
+**Exercise 6: Your turn**    
+
+Let $\pi$ be the proportion of U.S. adults that believe in ghosts.
+
+- Use `plot_beta()` to tune your own prior model of $\pi$. To this end, think about what values of $\pi$ you think are most likely and how sure you are. NOTE:    
+    - `alpha` and `beta` must be positive.
+    - The prior mean falls at `alpha` / (`alpha` + `beta`). Thus when `alpha` is smaller than `beta`, the prior mode falls below 0.5.
+    - In general, the smaller the `alpha` and `beta`, the more variable / less certain the prior.
+
+```{r}
+
+```
+
+
+- Collect some data. How many of the 1000 `pulse_of_the_nation` respondents believe in `ghosts`?
+
+
+```{r}
+
+```
+
+
+- Use `plot_beta_binomial()` to visualize your prior, data, and posterior.
+
+```{r}
+
+```
+
+
+
+\
+\
+\
+\
+
+
+
+
+## Apply Bayesian thinking to a regression model
+
+**GOAL**
+
+The above exercises applied Bayesian thinking to the analysis of a single parameter ($\pi$) and a single "data variable" (Y). Let's extend this thinking to a regression model in which we can explore the *relationship* of Y with some predictors X.
+
+
+\
+
+
+**THE STORY**    
+
+Capital Bikeshare is a bikeshare service in Washington, D.C. Our goal is to model the daily number of rides (Y) versus the temperature on that day (X).
+
+
+\
+
+
+**Exercise 7: Simulate the prior models**
+
+Though we can tune prior models to match our prior understanding, we'll start by utilizing default *weakly informative priors*. As a first step, use the code below to *simulate* the priors:
+
+```{r}
+# Load the bikes data
+data(bikes)
+
+# Simulate the prior model
+bike_prior <- stan_glm(
+  rides ~ temp_feel, data = bikes,
+  family = gaussian,
+  prior_PD = TRUE,
+  chains = 4, iter = 5000*2, seed = 84735)
+```
+
+`bike_prior` contains 20,000 prior plausible models of ridership by temperature. Plot just 200 of these models. Describe your observations. For example, do the weakly informative priors reflect a general prior *certainty* or a general prior *uncertainty* about the relationship between ridership and temperature?
+
+```{r}
+# 200 prior model lines
+bikes %>%
+  add_predicted_draws(bike_prior, n = 200) %>%
+  ggplot(aes(x = temp_feel, y = rides)) +
+  geom_smooth(aes(y = .prediction, group = .draw), 
+              size = 0.1, method = "lm", se = FALSE)
+```
+
+
+
+\
+
+
+**Exercise 8: Collect some data**
+
+Now that the priors are in place, check out the data. Plot and describe the observed relationship between `rides` and `temp_feel`.
+
+
+
+
+\
+
+
+**Exercise 9: Simulate the posterior**
+
+Next, we can update our posterior understanding of the relationship between ridership and temperature by combining the prior and the data. To do so, **change ONE LINE** in the code below. (Currently, the code would simulate the prior model.)
+
+```{r}
+# Simulate the posterior model
+bike_posterior <- stan_glm(
+  rides ~ temp_feel, data = bikes,
+  family = gaussian,
+  prior_PD = TRUE,
+  chains = 4, iter = 5000*2, seed = 84735)
+```
+
+
+
+
+\
+
+
+
+
+**Exercise 10: Check the simulation**
+
+This simulation produces 20,000 posterior plausible models of the relationship between ridership and temperature. More specifically, they produce 20,000 pairs of possible intercepts and slopes. We can use these to **approximate** the actual posterior relationship (which is too complicated to specify mathematically). To understand whether our simulation results are "trustworthy", there are several visual and numerical diagnostics we might check. Consider just two.
+
+Our 20,000 posterior plausible models combine 4 separate "chains" or samples of 5,000 posterior plausible models each. **Trace plots** illustrate the *sequence* of the simulated `(Intercept)` and slope (`temp_feel`) values in these chains. We want these to look like random noise, suggesting that the simulation is stable and random-ish. How do they look to you?
+
+```{r}
+mcmc_trace(bike_posterior)
+```
+
+Next, we can check out density plots of the `(Intercept)` and slope (`temp_feel`) values in these chains. This gives us a sense for the distribution of values explored in our simulation, not just their sequence. We want the 4 density plots to look similiar, suggesting that the simulation is stable (i.e. we could get a bigger simulation but the results wouldn't be much different). How do they look to you?
+
+```{r}
+mcmc_dens_overlay(bike_posterior)
+```
+
+
+\
+
+
+
+
+**Exercise 11: Examine the posterior**
+
+With some assurance that our simulation has stabilized, let's explore our posterior model. `bike_posterior` contains 20,000 posterior plausible models of ridership by temperature. Plot just 200 of these models. Describe your observations and how they compare to our prior understanding. HINT: See exercise 7 and add the observed data points.
+
+
+
+
+\
+
+
+
+**Exercise 12: Posterior summaries**    
+
+```{r}
+mcmc_dens(bike_posterior)
+tidy(bike_posterior, effects = c("fixed", "aux"),
+     conf.int = TRUE, conf.level = 0.80)
+```
+
+
+
+
+posterior prediction
+
+
+but is it good?
+mcmc simulation
+pp_check
+posterior prediction intervals
+
+
+
+
+
+
+
+you try: tweak the prior?
+
+
+```{r}
+set.seed(84735)
+predictions <- posterior_predict(bike_posterior, newdata = bikes)
+
+ppc_intervals(bikes$rides, yrep = predictions, x = bikes$temp_feel, 
+							prob = 0.5, prob_outer = 0.95) +
+	labs(x = "x1", y = "ys")
+```
+
+
+
+
+
