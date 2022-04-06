@@ -1,4 +1,11 @@
-# Bayes Rules! at R-Ladies Philly
+---
+title: Bayes Rules! activity
+output:
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+---
+
 
 
 
@@ -15,7 +22,7 @@ knitr::opts_chunk$set(
 \
 
 
-## Getting started 
+# Getting started 
 
 **GOALS**
 
@@ -54,7 +61,7 @@ library(broom.mixed)
 
 
 
-## Thinking like a Bayesian
+# Part 1: Thinking like a Bayesian
 
 **GOAL**    
 
@@ -72,7 +79,7 @@ Let $\pi$ ("pi") be the proportion of U.S. adults that believe that climate chan
 
 
 
-**Exercise 1: Specify a prior model**
+## Exercise 1: Specify a prior model
 
 The first step in learning about $\pi$ is to specify a **prior model** for $\pi$ (i.e. prior to collecting any data). Suppose your friend specifies their understanding of $\pi$ through the "Beta(2, 20)" model. Plot this Beta model and discuss what it tells you about your friend's prior understanding. For example:
 
@@ -90,7 +97,7 @@ plot_beta(alpha = 2, beta = 20)
 \
 
 
-**Exercise 2: Check out some data**
+## Exercise 2: Check out some data
 
 The second step in learning about $\pi$, the proportion of U.S. adults that believe that climate change is real and caused by people, is to collect data. Your friend surveys 10 people and 6 believe that climate change is real and caused by people. The **likelihood function** of $\pi$ plots the chance of getting this 6-out-of-10 survey result under different possible $\pi$ values. Based on this plot:
 
@@ -109,7 +116,7 @@ plot_binomial_likelihood(y = 6, n = 10)
 
 
 
-**Exercise 3: Build the posterior model**    
+## Exercise 3: Build the posterior model
 
 In a Bayesian analysis of $\pi$, we build a *posterior* model of $\pi$ by combining the prior model of $\pi$ with the data (represented through the likelihood function). Plot all 3 components below. Summarize your observations:
 
@@ -128,7 +135,7 @@ plot_beta_binomial(alpha = 2, beta = 20, y = 6, n = 10)
 
 
 
-**Exercise 4: Another friend**
+## Exercise 4: Another friend
 
 Consider another friend that saw the same 6-out-of-10 polling data but started with a Beta(1, 1) prior model for $\pi$:
 
@@ -149,7 +156,7 @@ plot_beta(alpha = 1, beta = 1)
 
 
 
-**Exercise 5: More data**
+## Exercise 5: More data
 
 Your two friends come across more data. In the `pulse_of_the_nation` survey, 655 of 1000 people believed climate change was real and caused by people:
 
@@ -165,13 +172,17 @@ pulse_of_the_nation %>%
 
 - Test your intuition. Use `plot_beta_binomial()` to explore both friends' posterior models of $\pi$.
 
+```{r}
+
+```
+
 
 \
 \
 
 
 
-**Exercise 6: Your turn**    
+## Exercise 6: Your turn
 
 Let $\pi$ be the proportion of U.S. adults that believe in ghosts.
 
@@ -209,7 +220,7 @@ Let $\pi$ be the proportion of U.S. adults that believe in ghosts.
 
 
 
-## Apply Bayesian thinking to a regression model
+# Part 2: Apply Bayesian thinking to a regression model
 
 **GOAL**
 
@@ -227,7 +238,7 @@ Capital Bikeshare is a bikeshare service in Washington, D.C. Our goal is to mode
 \
 
 
-**Exercise 7: Simulate the prior models**
+## Exercise 7: Simulate the prior models
 
 Though we can tune prior models to match our prior understanding, we'll start by utilizing default *weakly informative priors*. As a first step, use the code below to *simulate* the priors:
 
@@ -259,9 +270,13 @@ bikes %>%
 \
 
 
-**Exercise 8: Collect some data**
+## Exercise 8: Collect some data
 
 Now that the priors are in place, check out the data. Plot and describe the observed relationship between `rides` and `temp_feel`.
+
+```{r}
+
+```
 
 
 
@@ -269,7 +284,7 @@ Now that the priors are in place, check out the data. Plot and describe the obse
 \
 
 
-**Exercise 9: Simulate the posterior**
+## Exercise 9: Simulate the posterior
 
 Next, we can update our posterior understanding of the relationship between ridership and temperature by combining the prior and the data. To do so, **change ONE LINE** in the code below. (Currently, the code would simulate the prior model.)
 
@@ -290,7 +305,7 @@ bike_posterior <- stan_glm(
 
 
 
-**Exercise 10: Check the simulation**
+## Exercise 10: Check the simulation
 
 This simulation produces 20,000 posterior plausible models of the relationship between ridership and temperature. More specifically, they produce 20,000 pairs of possible intercepts and slopes. We can use these to **approximate** the actual posterior relationship (which is too complicated to specify mathematically). To understand whether our simulation results are "trustworthy", there are several visual and numerical diagnostics we might check. Consider just two.
 
@@ -312,10 +327,13 @@ mcmc_dens_overlay(bike_posterior)
 
 
 
-**Exercise 11: Examine the posterior**
+## Exercise 11: Examine the posterior
 
 With some assurance that our simulation has stabilized, let's explore our posterior model. `bike_posterior` contains 20,000 posterior plausible models of ridership by temperature. Plot just 200 of these models. Describe your observations and how they compare to our prior understanding. HINT: See exercise 7 and add the observed data points.
 
+```{r}
+
+```
 
 
 
@@ -323,7 +341,7 @@ With some assurance that our simulation has stabilized, let's explore our poster
 
 
 
-**Exercise 12: Posterior summaries**    
+## Exercise 12: Posterior summaries
 
 To dig in deeper, we can examine the posterior models for the `(Intercept)` and `temp_feel` model coefficients:
 
@@ -354,7 +372,7 @@ Questions:
 
 
 
-**Exercise 12: Posterior prediction**
+## Exercise 13: Posterior prediction
 
 It's supposed to be 90 degrees tomorrow. Plot and discuss the posterior predictive model for how many rides we'll see tomorrow:
 
@@ -379,7 +397,7 @@ What if it's supposed to be 70 degrees tomorrow? Plot and discuss the posterior 
 
 
 
-**EXERCISE 13: How accurate are the posterior predictions?**
+## Exercise 14: How accurate are the posterior predictions?
 
 If we want to use our model to make such predictions, we should also question how accurate they might be. For illustration and computational purposes only, let's examine our model's posterior predictive performance for just 20 of our data points:
 
@@ -420,7 +438,7 @@ Questions:
 
 
 
-**EXERCISE 14: How accurate are the posterior predictions? Take two.**
+## Exercise 15: How accurate are the posterior predictions? Take two.
 
 The `prediction_summary()` function provides numerical summaries of your observations in the plot above:
 
@@ -446,7 +464,7 @@ NOTE: `prediction_summary_cv()` provides a cross-validated alternative to measur
 
 
 
-**EXERCISE 15: You try. Tweak the prior.**
+## Exercise 16: You try. Tweak the prior.
 
 Recall that we utilized weakly informative priors in our analysis above. Instead, we could tune priors to reflect whatever prior information we might have about the relationship between ridership and temperature. For example, setting `prior = normal(100, 50)` indicates a prior understanding that, for each 1 degree increase in temperature, ridership likely increases by `100` riders though it could reasonably increase anywhere between 0 and 200 riders (100 - 2*50, 100 + 2*50).
 
@@ -471,11 +489,11 @@ bikes %>%
 
 Your turn. Tune and simulate priors that match the following scenarios.
 
-- We pretty certain that, for each 1 degree increase in temperature, ridership tends to increase by somewhere between 90 and 110 riders.
+- We're pretty certain that, for each 1 degree increase in temperature, ridership tends to increase by somewhere between 90 and 110 riders.
 
 - We're uncertain about the relationship between ridership in temperature. For each 1 degree increase in temperature, ridership might typically decrease by as much as 100 degrees or increase by as much as 100 degrees.
 
-- We pretty certain that, for each 1 degree increase in temperature, ridership tends to decrease.
+- We're pretty certain that, for each 1 degree increase in temperature, ridership tends to decrease.
 
 
 
@@ -485,7 +503,7 @@ Your turn. Tune and simulate priors that match the following scenarios.
 
 
 
-**EXERCISE 15: Weather**
+## Exercise 17: Weather
 
 Apply what you've learned to build a Bayesian regression model 3pm temperature (`temp3pm`) by 9am temperature (`temp9am`) in Perth, Australia.
 
@@ -501,7 +519,6 @@ data(weather_perth)
 
 
 
-
-**TO LEARN MORE**    
+## TO LEARN MORE
 
 Chapters 9--11 in [Bayes Rules!](https://www.bayesrulesbook.com/chapter-9.html) go into more depth on Bayesian regression.
